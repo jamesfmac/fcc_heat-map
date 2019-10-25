@@ -3,6 +3,131 @@ var margin = { top: 30, right: 30, bottom: 30, left: 60 },
   width = 1200,
   height = 625;
 
+var colorbrewer = {
+  RdYlBu: {
+    3: ["#fc8d59", "#ffffbf", "#91bfdb"],
+    4: ["#d7191c", "#fdae61", "#abd9e9", "#2c7bb6"],
+    5: ["#d7191c", "#fdae61", "#ffffbf", "#abd9e9", "#2c7bb6"],
+    6: ["#d73027", "#fc8d59", "#fee090", "#e0f3f8", "#91bfdb", "#4575b4"],
+    7: [
+      "#d73027",
+      "#fc8d59",
+      "#fee090",
+      "#ffffbf",
+      "#e0f3f8",
+      "#91bfdb",
+      "#4575b4"
+    ],
+    8: [
+      "#d73027",
+      "#f46d43",
+      "#fdae61",
+      "#fee090",
+      "#e0f3f8",
+      "#abd9e9",
+      "#74add1",
+      "#4575b4"
+    ],
+    9: [
+      "#d73027",
+      "#f46d43",
+      "#fdae61",
+      "#fee090",
+      "#ffffbf",
+      "#e0f3f8",
+      "#abd9e9",
+      "#74add1",
+      "#4575b4"
+    ],
+    10: [
+      "#a50026",
+      "#d73027",
+      "#f46d43",
+      "#fdae61",
+      "#fee090",
+      "#e0f3f8",
+      "#abd9e9",
+      "#74add1",
+      "#4575b4",
+      "#313695"
+    ],
+    11: [
+      "#a50026",
+      "#d73027",
+      "#f46d43",
+      "#fdae61",
+      "#fee090",
+      "#ffffbf",
+      "#e0f3f8",
+      "#abd9e9",
+      "#74add1",
+      "#4575b4",
+      "#313695"
+    ]
+  },
+  RdBu: {
+    3: ["#ef8a62", "#f7f7f7", "#67a9cf"],
+    4: ["#ca0020", "#f4a582", "#92c5de", "#0571b0"],
+    5: ["#ca0020", "#f4a582", "#f7f7f7", "#92c5de", "#0571b0"],
+    6: ["#b2182b", "#ef8a62", "#fddbc7", "#d1e5f0", "#67a9cf", "#2166ac"],
+    7: [
+      "#b2182b",
+      "#ef8a62",
+      "#fddbc7",
+      "#f7f7f7",
+      "#d1e5f0",
+      "#67a9cf",
+      "#2166ac"
+    ],
+    8: [
+      "#b2182b",
+      "#d6604d",
+      "#f4a582",
+      "#fddbc7",
+      "#d1e5f0",
+      "#92c5de",
+      "#4393c3",
+      "#2166ac"
+    ],
+    9: [
+      "#b2182b",
+      "#d6604d",
+      "#f4a582",
+      "#fddbc7",
+      "#f7f7f7",
+      "#d1e5f0",
+      "#92c5de",
+      "#4393c3",
+      "#2166ac"
+    ],
+    10: [
+      "#67001f",
+      "#b2182b",
+      "#d6604d",
+      "#f4a582",
+      "#fddbc7",
+      "#d1e5f0",
+      "#92c5de",
+      "#4393c3",
+      "#2166ac",
+      "#053061"
+    ],
+    11: [
+      "#67001f",
+      "#b2182b",
+      "#d6604d",
+      "#f4a582",
+      "#fddbc7",
+      "#f7f7f7",
+      "#d1e5f0",
+      "#92c5de",
+      "#4393c3",
+      "#2166ac",
+      "#053061"
+    ]
+  }
+};
+
 const monthNames = [
   "January",
   "February",
@@ -55,11 +180,32 @@ const drawChart = data => {
   const months = data.map(x => x.month);
   const distinctMonths = [...new Set(months)].reverse();
 
+  var legendColors = colorbrewer.RdYlBu[11].reverse();
+  var legendWidth = 400;
+
   const variance = data.map(x => x.variance);
 
   const getTemp = variance => {
     return (Math.round((variance + baseTemperature) * 10) / 10).toFixed(1);
   };
+
+  var minTemp = baseTemperature + Math.min.apply(null, variance);
+  var maxTemp = baseTemperature + Math.max.apply(null, variance);
+
+  var legendThreshold = d3
+    .scaleThreshold()
+    .domain(
+      (function(min, max, count) {
+        var array = [];
+        var step = (max - min) / count;
+        var base = min;
+        for (var i = 1; i < count; i++) {
+          array.push(base + i * step);
+        }
+        return array;
+      })(minTemp, maxTemp, legendColors.length)
+    )
+    .range(legendColors);
 
   // creating temp data
   const temps = data.map(x => {
@@ -69,7 +215,7 @@ const drawChart = data => {
   // Build X scales and axis:
   var x = d3
     .scaleBand()
-    .range([0, width])
+    .range([0, (width)])
     .domain(years);
 
   svg
@@ -83,16 +229,20 @@ const drawChart = data => {
     );
 
   // Build Y scales and axis:
-  var y = d3
+  const y = d3
     .scaleBand()
     .range([height - 100, 0])
+   
     .domain(distinctMonths)
     .padding(0.01);
+
 
   svg
     .append("g")
     .attr("id", "y-axis")
+    .attr("transform", "translate(-1,0)")
     .call(d3.axisLeft(y).tickFormat(x => monthNames[x - 1]));
+    
 
   // Build color scale
   var myColor = d3
@@ -103,8 +253,8 @@ const drawChart = data => {
   //create Rect
 
   svg
-    .append('g')
-    .selectAll('rect')
+    .append("g")
+    .selectAll("rect")
     .data(data, function(d) {
       return d.year + ":" + d.month;
     })
@@ -122,8 +272,8 @@ const drawChart = data => {
     .attr("data-month", d => d.month - 1)
     .attr("data-temp", d => getTemp(d.variance))
     .attr("class", "cell")
-    .style("fill", function(d) {
-      return myColor(getTemp(d.variance));
+    .style("fill", function(d, i) {
+      return legendThreshold(baseTemperature + d.variance);
     })
 
     //adding tooltips
@@ -149,53 +299,53 @@ const drawChart = data => {
 
   // adding legend
 
-  var formatPercent = d3.format(".0%"),
-    formatNumber = d3.format(".0f");
+  var legendX = d3
+    .scaleLinear()
+    .domain([minTemp, maxTemp])
+    .range([0, legendWidth]);
 
-  const threshold = d3.scaleThreshold()
-    .domain([0.11, 0.22, 0.33, 0.50])
-    .range(["#6e7c5a", "#a0b28f", "#d8b8b3", "#b45554", "#760000"]);
-
-const xLegend = d3.scaleLinear()
-    .domain([0, 1])
-    .range([0, 240]);
-
-const xAxis = d3.axisBottom(xLegend)
+  var legendXAxis = d3
+    .axisBottom(legendX)
     .tickSize(30)
-    .tickValues(threshold.domain())
-    .tickFormat(function(d) { return d === 0.5 ? formatPercent(d) : formatNumber(100 * d); });
+    .tickValues(legendThreshold.domain())
+    .tickFormat(d3.format(".1f"));
 
-  const legend = 
-  svg
+  const legend = svg
     .append("g")
     .attr("id", "legend")
     .attr("transform", "translate(0," + (height - 50) + ")")
-    .call(xAxis)
+    .call(legendXAxis);
 
-legend
-    .selectAll(".tick text")
-    .style("text-anchor", "middle")
+  legend.selectAll(".tick text").style("text-anchor", "middle");
 
-legend.selectAll('.domain')
-.remove()
+  legend.selectAll(".domain").remove();
 
-
-
-legend
-    .selectAll('rect', '.tick')
-    .data(threshold.range().map (color =>{
-        var d = threshold.invertExtent(color);
-    if (d[0] == null) d[0] = xLegend.domain()[0];
-    if (d[1] == null) d[1] = xLegend.domain()[1];
-    return d
-    }))
+  legend
+    .append("g")
+    .selectAll("rect")
+    .data(
+      legendThreshold.range().map(function(color) {
+        var d = legendThreshold.invertExtent(color);
+        if (d[0] == null) d[0] = legendX.domain()[0];
+        if (d[1] == null) d[1] = legendX.domain()[1];
+        return d;
+      })
+    )
     .enter()
-    .append("rect")
-    .attr("height", 25)
-    .attr("x", function(d) { return xLegend(d[0]); })
-    
-    .attr("width", function(d) { return xLegend(d[1]) - xLegend(d[0]); })
-    .attr("fill", function(d) { return threshold(d[0]); })
+    .append("rect", ".tick")
+    .style("fill", function(d, i) {
+      return legendThreshold(d[0]);
+    })
+    .attr("x", function(d, i) {
+      return legendX(d[0]);
+    })
+    .attr("y", 0)
+    .attr("width", function(d, i) {
+      return legendX(d[1]) - legendX(d[0]);
+    })
+    .attr("height", 30);
+
+  
 };
 
 fetch(
