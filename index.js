@@ -1,7 +1,7 @@
 // set the dimensions and margins of the graph
 var margin = { top: 30, right: 30, bottom: 30, left: 60 },
   width = 1200,
-  height = 600;
+  height = 625;
 
 const monthNames = [
   "January",
@@ -74,7 +74,7 @@ const drawChart = data => {
 
   svg
     .append("g")
-    .attr("transform", "translate(0," + height + ")")
+    .attr("transform", "translate(0," + (height - 100) + ")")
     .attr("id", "x-axis")
     .call(
       d3
@@ -85,7 +85,7 @@ const drawChart = data => {
   // Build Y scales and axis:
   var y = d3
     .scaleBand()
-    .range([height, 0])
+    .range([height -100, 0])
     .domain(distinctMonths)
     .padding(0.01);
 
@@ -101,27 +101,7 @@ const drawChart = data => {
     .domain([d3.min(temps), d3.max(temps)]);
 
 
-
-    // Example Legend 
-
-
-
-
-
-
-
-
-    //// End Legend
-
-
-
-
-
-
-
-
-
-  //add tooltips
+  //create Rect
 
   svg
     .selectAll()
@@ -145,7 +125,13 @@ const drawChart = data => {
     .style("fill", function(d) {
       return myColor(getTemp(d.variance));
     })
+
+    // adding legend
+
+ 
+
     //adding tooltips
+    
     .on("mouseover", function(d, i) {
       tooltip
         .transition()
@@ -164,6 +150,15 @@ const drawChart = data => {
     .on("mouseout", function(el) {
       tooltip.transition().style("opacity", 0);
     });
+
+    svg.append('g')
+    .attr("id", 'legend')
+    .append('rect')
+    .attr('width','400px')
+    .attr('height','50px')
+    .style('fill', 'red')
+    .attr("transform", "translate(0," + (height - 50) + ")")
+    
 };
 
 fetch(
