@@ -87,12 +87,7 @@ form{
 }
 
 
-.chart rect {
-    fill: steelblue;
-  }
-  .chart rect:hover {
-    fill: whitesmoke;
-  }
+
   
   .chart text {
     fill: gray;

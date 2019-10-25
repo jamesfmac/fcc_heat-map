@@ -85,7 +85,7 @@ const drawChart = data => {
   // Build Y scales and axis:
   var y = d3
     .scaleBand()
-    .range([height -100, 0])
+    .range([height - 100, 0])
     .domain(distinctMonths)
     .padding(0.01);
 
@@ -100,11 +100,11 @@ const drawChart = data => {
     .range(["blue", "red"])
     .domain([d3.min(temps), d3.max(temps)]);
 
-
   //create Rect
 
   svg
-    .selectAll()
+    .append('g')
+    .selectAll('rect')
     .data(data, function(d) {
       return d.year + ":" + d.month;
     })
@@ -126,12 +126,8 @@ const drawChart = data => {
       return myColor(getTemp(d.variance));
     })
 
-    // adding legend
-
- 
-
     //adding tooltips
-    
+
     .on("mouseover", function(d, i) {
       tooltip
         .transition()
@@ -151,14 +147,55 @@ const drawChart = data => {
       tooltip.transition().style("opacity", 0);
     });
 
-    svg.append('g')
-    .attr("id", 'legend')
-    .append('rect')
-    .attr('width','400px')
-    .attr('height','50px')
-    .style('fill', 'red')
+  // adding legend
+
+  var formatPercent = d3.format(".0%"),
+    formatNumber = d3.format(".0f");
+
+  const threshold = d3.scaleThreshold()
+    .domain([0.11, 0.22, 0.33, 0.50])
+    .range(["#6e7c5a", "#a0b28f", "#d8b8b3", "#b45554", "#760000"]);
+
+const xLegend = d3.scaleLinear()
+    .domain([0, 1])
+    .range([0, 240]);
+
+const xAxis = d3.axisBottom(xLegend)
+    .tickSize(30)
+    .tickValues(threshold.domain())
+    .tickFormat(function(d) { return d === 0.5 ? formatPercent(d) : formatNumber(100 * d); });
+
+  const legend = 
+  svg
+    .append("g")
+    .attr("id", "legend")
     .attr("transform", "translate(0," + (height - 50) + ")")
+    .call(xAxis)
+
+legend
+    .selectAll(".tick text")
+    .style("text-anchor", "middle")
+
+legend.selectAll('.domain')
+.remove()
+
+
+
+legend
+    .selectAll('rect', '.tick')
+    .data(threshold.range().map (color =>{
+        var d = threshold.invertExtent(color);
+    if (d[0] == null) d[0] = xLegend.domain()[0];
+    if (d[1] == null) d[1] = xLegend.domain()[1];
+    return d
+    }))
+    .enter()
+    .append("rect")
+    .attr("height", 25)
+    .attr("x", function(d) { return xLegend(d[0]); })
     
+    .attr("width", function(d) { return xLegend(d[1]) - xLegend(d[0]); })
+    .attr("fill", function(d) { return threshold(d[0]); })
 };
 
 fetch(
